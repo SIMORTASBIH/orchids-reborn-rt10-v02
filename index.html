@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- TODO: Set the document title to the name of your application -->
+    <title>RT10/23</title>
+    <meta name="description" content="Aplikasi Manajemen Keuangan RT 10">
+    <meta name="author" content="Lovable" />
+
+    <!-- TODO: Update og:title to match your application name -->
+    
+    
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@Lovable" />
+    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:title" content="RT10/23">
+  <meta name="twitter:title" content="RT10/23">
+  <meta property="og:description" content="Aplikasi Manajemen Keuangan RT 10">
+  <meta name="twitter:description" content="Aplikasi Manajemen Keuangan RT 10">
+    <link rel="icon" type="image/x-icon" href="https://storage.googleapis.com/gpt-engineer-file-uploads/7sljVeR4v2e0nLSqTHl8c5bCYp02/uploads/1767503666215-RT10.jpg">
+    <script>
+      // Force update mechanism
+      (function() {
+        const APP_VERSION = '1.0.4';
+        const storedVersion = localStorage.getItem('app_version');
+        
+        // Handle manual clear from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('clear') === 'true') {
+          localStorage.clear();
+          sessionStorage.clear();
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+              for (let registration of registrations) {
+                registration.unregister();
+              }
+            });
+          }
+          window.location.href = window.location.pathname;
+          return;
+        }
+
+        if (storedVersion !== APP_VERSION) {
+          console.log('New version detected: ' + APP_VERSION + '. Clearing cache and reloading...');
+          localStorage.setItem('app_version', APP_VERSION);
+          
+          // Clear all caches
+          if ('caches' in window) {
+            caches.keys().then(names => {
+              for (let name of names) caches.delete(name);
+            });
+          }
+          
+          // Unregister service workers to force fresh load
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+              for (let registration of registrations) {
+                registration.unregister();
+              }
+            });
+          }
+
+          // Reload after a short delay to allow cache clearing
+          setTimeout(() => {
+            window.location.reload(true);
+          }, 500);
+        }
+      })();
+    </script>
+</head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script
+        src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts//route-messenger-vite.js"
+       data-target-origin="*"
+        data-message-type="ROUTE_CHANGE"
+        data-include-search-params="true"
+        data-only-in-iframe="true"
+        data-debug="true"
+        data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
+        defer
+    ></script>
+  </body>
+</html>

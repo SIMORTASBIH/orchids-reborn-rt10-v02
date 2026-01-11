@@ -1,0 +1,12 @@
+DAYTONA_SANDBOX_USER=daytona
+NODE_VERSION=22.19.0
+CI=true
+HOSTNAME=65179f6e-05c3-4ea7-975e-682dd39ea1b7
+YARN_VERSION=1.22.22
+HOME=/root
+OLDPWD=/home/user/app
+DAYTONA_SANDBOX_ID=65179f6e-05c3-4ea7-975e-682dd39ea1b7
+PIP_BREAK_SYSTEM_PACKAGES=1
+PATH=/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+DAYTONA_SANDBOX_SNAPSHOT=cr.app.daytona.io/sbox/9cdd4bb3-f36e-45a9-aa69-1096c755794c:0.0.1
+PWD=/home/user/app
