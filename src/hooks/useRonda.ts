@@ -2,26 +2,20 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-export type PeriodType = 'daily' | 'weekly' | 'monthly' | 'custom';
-
 export interface RondaGroup {
   id: string;
   name: string;
-  period_type: PeriodType;
-  year: number;
-  start_date: string | null;
-  end_date: string | null;
   created_at: string;
-  created_by: string | null;
+  created_by: string;
 }
 
-export interface RondaMember {
+export interface RondaGroupMember {
   id: string;
   group_id: string;
   resident_id: string;
   resident?: {
-    id: string;
     name: string;
+    address: string;
   };
 }
 
@@ -29,206 +23,147 @@ export interface RondaSchedule {
   id: string;
   group_id: string;
   schedule_date: string;
-  snack_responsible_id: string | null;
+  snack_responsible_id: string;
+  created_at: string;
   snack_responsible?: {
-    id: string;
     name: string;
   };
 }
 
-export function useRonda() {
+export const useRonda = () => {
   const [groups, setGroups] = useState<RondaGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchGroups = async () => {
     setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('ronda_groups')
-        .select('*')
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('ronda_groups')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      if (error) throw error;
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Gagal mengambil data kelompok ronda',
+        variant: 'destructive',
+      });
+    } else {
       setGroups(data || []);
-    } catch (error: any) {
-      console.error('Error fetching ronda groups:', error);
-      toast({
-        title: 'Error',
-        description: 'Gagal memuat data kelompok ronda',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
 
-  const fetchGroupDetail = async (id: string) => {
-    try {
-      const { data: group, error: groupError } = await supabase
-        .from('ronda_groups')
-        .select('*')
-        .eq('id', id)
-        .single();
+  const getGroupDetails = async (groupId: string) => {
+    const groupPromise = supabase.from('ronda_groups').select('*').eq('id', groupId).single();
+    const membersPromise = supabase
+      .from('ronda_group_members')
+      .select('*, resident:residents(name, address)')
+      .eq('group_id', groupId);
+    const schedulesPromise = supabase
+      .from('ronda_schedules')
+      .select('*, snack_responsible:residents(name)')
+      .eq('group_id', groupId)
+      .order('schedule_date', { ascending: true });
 
-      if (groupError) throw groupError;
+    const [groupRes, membersRes, schedulesRes] = await Promise.all([
+      groupPromise,
+      membersPromise,
+      schedulesPromise,
+    ]);
 
-      const { data: members, error: membersError } = await supabase
-        .from('ronda_group_members')
-        .select('*, resident:residents(id, name)')
-        .eq('group_id', id);
+    return {
+      group: groupRes.data as RondaGroup,
+      members: membersRes.data as RondaGroupMember[],
+      schedules: schedulesRes.data as RondaSchedule[],
+      error: groupRes.error || membersRes.error || schedulesRes.error,
+    };
+  };
 
-      if (membersError) throw membersError;
+  const createRondaGroup = async (
+    name: string,
+    residentIds: string[],
+    schedules: { date: string; snack_responsible_id: string }[]
+  ) => {
+    // Start a "transaction" via sequence of calls
+    const { data: group, error: groupError } = await supabase
+      .from('ronda_groups')
+      .insert({ name })
+      .select()
+      .single();
 
-      const { data: schedules, error: schedulesError } = await supabase
+    if (groupError) return { success: false, error: groupError };
+
+    const membersToInsert = residentIds.map((rid) => ({
+      group_id: group.id,
+      resident_id: rid,
+    }));
+
+    const { error: membersError } = await supabase
+      .from('ronda_group_members')
+      .insert(membersToInsert);
+
+    if (membersError) return { success: false, error: membersError };
+
+    if (schedules.length > 0) {
+      const schedulesToInsert = schedules.map((s) => ({
+        group_id: group.id,
+        schedule_date: s.date,
+        snack_responsible_id: s.snack_responsible_id,
+      }));
+
+      const { error: schedulesError } = await supabase
         .from('ronda_schedules')
-        .select('*, snack_responsible:residents(id, name)')
-        .eq('group_id', id)
-        .order('schedule_date', { ascending: true });
+        .insert(schedulesToInsert);
 
-      if (schedulesError) throw schedulesError;
-
-      return { group, members, schedules };
-    } catch (error: any) {
-      console.error('Error fetching ronda detail:', error);
-      toast({
-        title: 'Error',
-        description: 'Gagal memuat detail kelompok ronda',
-        variant: 'destructive',
-      });
-      return null;
+      if (schedulesError) return { success: false, error: schedulesError };
     }
+
+    await fetchGroups();
+    return { success: true, group };
   };
 
-  const createGroup = async (
-    groupData: Omit<RondaGroup, 'id' | 'created_at' | 'created_by'>,
-    memberIds: string[],
-    schedules: { schedule_date: string; snack_responsible_id: string | null }[]
+  const updateRondaGroup = async (
+    groupId: string,
+    name: string,
+    residentIds: string[],
+    schedules: { date: string; snack_responsible_id: string }[]
   ) => {
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      
-      // 1. Create Group
-      const { data: group, error: groupError } = await supabase
-        .from('ronda_groups')
-        .insert({
-          ...groupData,
-          created_by: userData.user?.id,
-        })
-        .select()
-        .single();
+    // Update name
+    const { error: groupError } = await supabase
+      .from('ronda_groups')
+      .update({ name })
+      .eq('id', groupId);
 
-      if (groupError) throw groupError;
+    if (groupError) return { success: false, error: groupError };
 
-      // 2. Create Members
-      if (memberIds.length > 0) {
-        const { error: membersError } = await supabase
-          .from('ronda_group_members')
-          .insert(memberIds.map(residentId => ({
-            group_id: group.id,
-            resident_id: residentId,
-          })));
+    // Update members: delete and re-insert
+    await supabase.from('ronda_group_members').delete().eq('group_id', groupId);
+    const membersToInsert = residentIds.map((rid) => ({
+      group_id: groupId,
+      resident_id: rid,
+    }));
+    await supabase.from('ronda_group_members').insert(membersToInsert);
 
-        if (membersError) throw membersError;
-      }
-
-      // 3. Create Schedules
-      if (schedules.length > 0) {
-        const { error: schedulesError } = await supabase
-          .from('ronda_schedules')
-          .insert(schedules.map(s => ({
-            group_id: group.id,
-            schedule_date: s.schedule_date,
-            snack_responsible_id: s.snack_responsible_id,
-          })));
-
-        if (schedulesError) throw schedulesError;
-      }
-
-      await fetchGroups();
-      return { success: true, data: group };
-    } catch (error: any) {
-      console.error('Error creating ronda group:', error);
-      toast({
-        title: 'Error',
-        description: 'Gagal membuat kelompok ronda',
-        variant: 'destructive',
-      });
-      return { success: false };
+    // Update schedules: delete and re-insert
+    await supabase.from('ronda_schedules').delete().eq('group_id', groupId);
+    if (schedules.length > 0) {
+      const schedulesToInsert = schedules.map((s) => ({
+        group_id: groupId,
+        schedule_date: s.date,
+        snack_responsible_id: s.snack_responsible_id,
+      }));
+      await supabase.from('ronda_schedules').insert(schedulesToInsert);
     }
+
+    await fetchGroups();
+    return { success: true };
   };
 
-  const updateGroup = async (
-    id: string,
-    groupData: Partial<RondaGroup>,
-    memberIds?: string[],
-    schedules?: { schedule_date: string; snack_responsible_id: string | null }[]
-  ) => {
-    try {
-      // 1. Update Group
-      const { error: groupError } = await supabase
-        .from('ronda_groups')
-        .update(groupData)
-        .eq('id', id);
-
-      if (groupError) throw groupError;
-
-      // 2. Update Members (if provided, replace all)
-      if (memberIds) {
-        await supabase.from('ronda_group_members').delete().eq('group_id', id);
-        if (memberIds.length > 0) {
-          const { error: membersError } = await supabase
-            .from('ronda_group_members')
-            .insert(memberIds.map(residentId => ({
-              group_id: id,
-              resident_id: residentId,
-            })));
-          if (membersError) throw membersError;
-        }
-      }
-
-      // 3. Update Schedules (if provided, replace all)
-      if (schedules) {
-        await supabase.from('ronda_schedules').delete().eq('group_id', id);
-        if (schedules.length > 0) {
-          const { error: schedulesError } = await supabase
-            .from('ronda_schedules')
-            .insert(schedules.map(s => ({
-              group_id: id,
-              schedule_date: s.schedule_date,
-              snack_responsible_id: s.snack_responsible_id,
-            })));
-          if (schedulesError) throw schedulesError;
-        }
-      }
-
-      await fetchGroups();
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error updating ronda group:', error);
-      toast({
-        title: 'Error',
-        description: 'Gagal memperbarui kelompok ronda',
-        variant: 'destructive',
-      });
-      return { success: false };
-    }
-  };
-
-  const deleteGroup = async (id: string) => {
-    try {
-      const { error } = await supabase.from('ronda_groups').delete().eq('id', id);
-      if (error) throw error;
-      setGroups(prev => prev.filter(g => g.id !== id));
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error deleting ronda group:', error);
-      toast({
-        title: 'Error',
-        description: 'Gagal menghapus kelompok ronda',
-        variant: 'destructive',
-      });
-      return { success: false };
-    }
+  const deleteRondaGroup = async (groupId: string) => {
+    const { error } = await supabase.from('ronda_groups').delete().eq('id', groupId);
+    if (error) return { success: false, error };
+    await fetchGroups();
+    return { success: true };
   };
 
   useEffect(() => {
@@ -239,9 +174,9 @@ export function useRonda() {
     groups,
     isLoading,
     fetchGroups,
-    fetchGroupDetail,
-    createGroup,
-    updateGroup,
-    deleteGroup,
+    getGroupDetails,
+    createRondaGroup,
+    updateRondaGroup,
+    deleteRondaGroup,
   };
-}
+};

@@ -10,7 +10,7 @@ import {
   Settings,
   User,
   LogOut,
-  Calendar
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/residents', icon: Users, label: 'Warga' },
   { href: '/pengurus', icon: UserCog, label: 'Pengurus' },
-  { href: '/ronda', icon: Calendar, label: 'Jadwal Ronda' },
+  { href: '/ronda', icon: Shield, label: 'Jadwal Ronda' },
   { href: '/transactions', icon: ArrowUpDown, label: 'Bayar & Transaksi' },
   { href: '/reports', icon: FileText, label: 'Laporan' },
   { href: '/profile', icon: User, label: 'Profil' },
@@ -82,7 +82,7 @@ export function Layout({ children }: LayoutProps) {
         
         <nav className="flex-1 px-4 space-y-1">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.href;
+            const isActive = location.pathname === item.href || (item.href === '/ronda' && location.pathname.startsWith('/ronda/'));
             return (
               <Link
                 key={item.href}
@@ -138,9 +138,9 @@ export function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Mobile Bottom Bar */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border/40 pb-safe-area-inset-bottom h-[calc(4.5rem+env(safe-area-inset-bottom))] flex justify-around items-center px-2">
-          {[navItems[0], navItems[3], navItems[1], navItems[4], navItems[5], navItems[6]].map((item) => {
-            const isActive = location.pathname === item.href;
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border/40 pb-safe-area-inset-bottom h-[calc(4.5rem+env(safe-area-inset-bottom))] flex justify-around items-center px-2">
+        {[navItems[0], navItems[3], navItems[1], navItems[4], navItems[5]].map((item) => {
+          const isActive = location.pathname === item.href || (item.href === '/ronda' && location.pathname.startsWith('/ronda/'));
           return (
             <Link
               key={item.href}
@@ -156,6 +156,7 @@ export function Layout({ children }: LayoutProps) {
           );
         })}
       </nav>
+
     </div>
   );
 }
