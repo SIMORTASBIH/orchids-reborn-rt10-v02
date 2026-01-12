@@ -4,13 +4,13 @@ import {
   LayoutDashboard, 
   Users, 
   UserCog,
+  Shield,
   CreditCard, 
   ArrowUpDown, 
   FileText, 
   Settings,
   User,
-  LogOut,
-  Shield
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -82,7 +82,7 @@ export function Layout({ children }: LayoutProps) {
         
         <nav className="flex-1 px-4 space-y-1">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.href || (item.href === '/ronda' && location.pathname.startsWith('/ronda/'));
+            const isActive = location.pathname === item.href;
             return (
               <Link
                 key={item.href}
@@ -140,7 +140,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Mobile Bottom Bar */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border/40 pb-safe-area-inset-bottom h-[calc(4.5rem+env(safe-area-inset-bottom))] flex justify-around items-center px-2">
         {[navItems[0], navItems[3], navItems[1], navItems[4], navItems[5]].map((item) => {
-          const isActive = location.pathname === item.href || (item.href === '/ronda' && location.pathname.startsWith('/ronda/'));
+          const isActive = location.pathname === item.href;
           return (
             <Link
               key={item.href}
@@ -156,7 +156,6 @@ export function Layout({ children }: LayoutProps) {
           );
         })}
       </nav>
-
     </div>
   );
 }
