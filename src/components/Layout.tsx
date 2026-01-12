@@ -4,14 +4,14 @@ import {
   LayoutDashboard, 
   Users, 
   UserCog,
-  Shield,
-  CreditCard, 
-  ArrowUpDown, 
-  FileText, 
-  Settings,
-  User,
-  LogOut
-} from 'lucide-react';
+    CreditCard, 
+    ArrowUpDown, 
+    FileText, 
+    CalendarDays,
+    Settings,
+    User,
+    LogOut
+  } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,9 +25,9 @@ interface LayoutProps {
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/residents', icon: Users, label: 'Warga' },
-  { href: '/pengurus', icon: UserCog, label: 'Pengurus' },
-  { href: '/ronda', icon: Shield, label: 'Jadwal Ronda' },
-  { href: '/transactions', icon: ArrowUpDown, label: 'Bayar & Transaksi' },
+    { href: '/pengurus', icon: UserCog, label: 'Pengurus' },
+    { href: '/ronda', icon: CalendarDays, label: 'Jadwal Ronda' },
+    { href: '/transactions', icon: ArrowUpDown, label: 'Bayar & Transaksi' },
   { href: '/reports', icon: FileText, label: 'Laporan' },
   { href: '/profile', icon: User, label: 'Profil' },
   { href: '/settings', icon: Settings, label: 'Setelan' },
