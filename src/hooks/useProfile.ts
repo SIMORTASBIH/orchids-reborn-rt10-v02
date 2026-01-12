@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
 export interface Profile {
   id: string;
-  full_name: string | null;
   email: string | null;
+  full_name: string | null;
   avatar_url: string | null;
   updated_at: string | null;
 }
@@ -14,62 +14,60 @@ export interface Profile {
 export function useProfile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async () => {
-    if (!user) return;
-    
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
+
+  async function fetchProfile() {
     try {
-      setIsLoading(true);
+      setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', user?.id)
         .single();
 
       if (error) throw error;
       setProfile(data);
-    } catch (error) {
-      const err = error as Error;
-      console.error('Error fetching profile:', err.message);
+    } catch (error: any) {
+      console.error('Error fetching profile:', error.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [user]);
+  }
 
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
-  const updateProfile = async (updates: Partial<Profile>) => {
-    if (!user) return { success: false };
-
+  async function updateProfile(updates: Partial<Profile>) {
     try {
+      setLoading(true);
       const { error } = await supabase
         .from('profiles')
         .update({
           ...updates,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', user.id);
+        .eq('id', user?.id);
 
       if (error) throw error;
-      
       setProfile(prev => prev ? { ...prev, ...updates } : null);
-      return { success: true };
-    } catch (error) {
-      const err = error as Error;
-      toast.error(err.message);
-      return { success: false };
+      toast.success('Profil berhasil diperbarui');
+      return { error: null };
+    } catch (error: any) {
+      toast.error('Gagal memperbarui profil: ' + error.message);
+      return { error };
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
-  const uploadAvatar = async (file: File) => {
-    if (!user) return { success: false };
-
+  async function uploadAvatar(file: File) {
     try {
+      setLoading(true);
       const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}-${Math.random()}.${fileExt}`;
+      const filePath = `${user?.id}-${Math.random()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -81,33 +79,15 @@ export function useProfile() {
         .from('avatars')
         .getPublicUrl(filePath);
 
-      const result = await updateProfile({ avatar_url: publicUrl });
-      return { success: result.success, url: publicUrl };
-    } catch (error) {
-      const err = error as Error;
-      toast.error(err.message);
-      return { success: false };
+      await updateProfile({ avatar_url: publicUrl });
+      return { url: publicUrl, error: null };
+    } catch (error: any) {
+      toast.error('Gagal mengunggah foto: ' + error.message);
+      return { url: null, error };
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
-  const updatePassword = async (password: string) => {
-    try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
-      return { success: true };
-    } catch (error) {
-      const err = error as Error;
-      toast.error(err.message);
-      return { success: false };
-    }
-  };
-
-  return {
-    profile,
-    isLoading,
-    updateProfile,
-    uploadAvatar,
-    updatePassword,
-    refreshProfile: fetchProfile
-  };
+  return { profile, loading, updateProfile, uploadAvatar, refreshProfile: fetchProfile };
 }

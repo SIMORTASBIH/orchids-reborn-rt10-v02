@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface LayoutProps {
   children: ReactNode;
@@ -27,6 +27,7 @@ const navItems = [
   { href: '/pengurus', icon: UserCog, label: 'Pengurus' },
   { href: '/transactions', icon: ArrowUpDown, label: 'Bayar & Transaksi' },
   { href: '/reports', icon: FileText, label: 'Laporan' },
+  { href: '/profile', icon: User, label: 'Profil' },
   { href: '/settings', icon: Settings, label: 'Setelan' },
 ];
 
@@ -41,29 +42,27 @@ export function Layout({ children }: LayoutProps) {
     navigate('/auth');
   };
 
-  const userInitial = profile?.full_name?.[0] || user?.email?.[0] || 'U';
-
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/10">
       {/* Mobile Header */}
-      <header className="lg:hidden sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shadow-sm">
-            <LayoutDashboard className="h-4 w-4" />
+        <header className="lg:hidden sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shadow-sm">
+              <LayoutDashboard className="h-4 w-4" />
+            </div>
+            <h1 className="text-lg font-bold tracking-tight">Iuran RT</h1>
           </div>
-          <h1 className="text-lg font-bold tracking-tight">Iuran RT</h1>
-        </div>
-        {user && (
-          <Link to="/profile">
-            <Avatar className="h-8 w-8 border border-primary/20">
-              <AvatarImage src={profile?.avatar_url || ''} />
-              <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
-                {userInitial.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </Link>
-        )}
-      </header>
+          {user && (
+            <Link to="/profile">
+              <Avatar className="w-8 h-8 border border-primary/20">
+                <AvatarImage src={profile?.avatar_url || ''} />
+                <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                  {profile?.full_name?.[0]?.toUpperCase() || user.email?.[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
+          )}
+        </header>
 
       {/* Sidebar (Desktop) */}
       <aside className="hidden lg:flex fixed left-0 top-0 z-40 h-full w-64 bg-sidebar border-r border-sidebar-border flex-col transition-all duration-300">
@@ -100,29 +99,25 @@ export function Layout({ children }: LayoutProps) {
           })}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border/50 space-y-4">
-          {user && (
-            <Link 
-              to="/profile"
-              className={cn(
-                "flex items-center gap-3 px-3 py-3 rounded-xl border border-border/50 transition-all hover:bg-muted/50",
-                location.pathname === '/profile' ? "bg-primary/5 border-primary/20 shadow-sm" : "bg-muted/30"
-              )}
-            >
-              <Avatar className="h-8 w-8 border border-primary/10">
-                <AvatarImage src={profile?.avatar_url || ''} />
-                <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">
-                  {userInitial.toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 truncate">
-                <p className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground opacity-60">Profil</p>
-                <p className="text-xs font-bold text-foreground truncate">{profile?.full_name || user.email}</p>
-              </div>
-            </Link>
-          )}
-          <Button
-            variant="ghost"
+          <div className="p-4 border-t border-sidebar-border/50 space-y-4">
+            {user && (
+              <Link to="/profile" className="block group">
+                <div className="px-3 py-3 bg-muted/30 rounded-lg border border-border/50 group-hover:bg-muted/50 transition-colors flex items-center gap-3">
+                  <Avatar className="w-8 h-8 border border-primary/20">
+                    <AvatarImage src={profile?.avatar_url || ''} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                      {profile?.full_name?.[0]?.toUpperCase() || user.email?.[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="overflow-hidden">
+                    <p className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground mb-0.5 opacity-60">Session</p>
+                    <p className="text-xs font-medium text-foreground truncate">{profile?.full_name || user.email}</p>
+                  </div>
+                </div>
+              </Link>
+            )}
+            <Button
+              variant="ghost"
             size="sm"
             className="w-full justify-start gap-3 h-10 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-all"
             onClick={handleSignOut}
@@ -142,7 +137,7 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Mobile Bottom Bar */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border/40 pb-safe-area-inset-bottom h-[calc(4.5rem+env(safe-area-inset-bottom))] flex justify-around items-center px-2">
-        {navItems.slice(0, 3).map((item) => {
+        {[navItems[0], navItems[3], navItems[1], navItems[4], navItems[5]].map((item) => {
           const isActive = location.pathname === item.href;
           return (
             <Link
@@ -158,26 +153,6 @@ export function Layout({ children }: LayoutProps) {
             </Link>
           );
         })}
-        <Link
-          to="/profile"
-          className={cn(
-            "flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl transition-all",
-            location.pathname === '/profile' ? "text-primary scale-105" : "text-muted-foreground opacity-50"
-          )}
-        >
-          <User className={cn("h-5 w-5", location.pathname === '/profile' ? "stroke-[2.5px]" : "stroke-[2px]")} />
-          <span className="text-[10px] font-bold tracking-tighter">Profil</span>
-        </Link>
-        <Link
-          to="/settings"
-          className={cn(
-            "flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl transition-all",
-            location.pathname === '/settings' ? "text-primary scale-105" : "text-muted-foreground opacity-50"
-          )}
-        >
-          <Settings className={cn("h-5 w-5", location.pathname === '/settings' ? "stroke-[2.5px]" : "stroke-[2px]")} />
-          <span className="text-[10px] font-bold tracking-tighter">Setelan</span>
-        </Link>
       </nav>
     </div>
   );

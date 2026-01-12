@@ -1,206 +1,166 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { useProfile } from '@/hooks/useProfile';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Loader2, Camera, Save, Lock, User } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
+import { User, Lock, Camera, Loader2, Save } from 'lucide-react';
 
 export default function Profile() {
-  const { profile, isLoading, updateProfile, uploadAvatar, updatePassword } = useProfile();
-  const [fullName, setFullName] = useState('');
+  const { profile, loading, updateProfile, uploadAvatar } = useProfile();
+  const [fullName, setFullName] = useState(profile?.full_name || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
-  useEffect(() => {
-    if (profile?.full_name) {
-      setFullName(profile.full_name);
-    }
-  }, [profile]);
+  // Update fullName when profile loads
+  useState(() => {
+    if (profile?.full_name) setFullName(profile.full_name);
+  });
 
-  const handleUpdateProfile = async () => {
-    if (!fullName.trim()) return;
-    setIsUpdatingProfile(true);
-    const result = await updateProfile({ full_name: fullName });
-    if (result.success) {
-      toast.success('Profil berhasil diperbarui');
-    }
-    setIsUpdatingProfile(false);
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdatingProfile(true);
+    await updateProfile({ full_name: fullName });
+    setUpdatingProfile(false);
   };
 
-  const handleUpdatePassword = async () => {
-    if (!password) {
-      toast.error('Password tidak boleh kosong');
-      return;
-    }
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (password !== confirmPassword) {
-      toast.error('Konfirmasi password tidak cocok');
+      toast.error('Kata sandi tidak cocok');
       return;
     }
-    setIsUpdatingPassword(true);
-    const result = await updatePassword(password);
-    if (result.success) {
-      toast.success('Password berhasil diperbarui');
+    if (password.length < 6) {
+      toast.error('Kata sandi minimal 6 karakter');
+      return;
+    }
+
+    setUpdatingPassword(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      toast.error('Gagal memperbarui kata sandi: ' + error.message);
+    } else {
+      toast.success('Kata sandi berhasil diperbarui');
       setPassword('');
       setConfirmPassword('');
     }
-    setIsUpdatingPassword(false);
+    setUpdatingPassword(false);
   };
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    const result = await uploadAvatar(file);
-    if (result.success) {
-      toast.success('Foto profil berhasil diperbarui');
+    if (file) {
+      await uploadAvatar(file);
     }
-    setIsUploading(false);
   };
-
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
+      <div className="space-y-8 max-w-2xl mx-auto">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Profil Pengguna</h1>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mt-2 opacity-60">
-            Personal Information & Security
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">Profil Pengguna</h1>
+          <p className="text-muted-foreground mt-2">Kelola informasi akun dan keamanan Anda.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Avatar Section */}
-          <Card className="md:col-span-1 rounded-2xl border shadow-sm overflow-hidden h-fit">
-            <CardContent className="p-8 flex flex-col items-center space-y-6">
-              <div className="relative group">
-                <Avatar className="h-32 w-32 border-4 border-primary/10 shadow-xl">
-                  <AvatarImage src={profile?.avatar_url || ''} />
-                  <AvatarFallback className="text-3xl font-bold bg-primary/5 text-primary">
-                    {fullName?.[0]?.toUpperCase() || profile?.email?.[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <label className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full cursor-pointer shadow-lg hover:scale-110 transition-transform">
-                  {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                  <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} disabled={isUploading} />
-                </label>
+        <div className="grid gap-8">
+          {/* Profile Section */}
+          <Card className="border-border/40 shadow-sm overflow-hidden">
+            <CardHeader className="bg-muted/30 pb-8">
+              <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+                <div className="relative group">
+                  <Avatar className="w-24 h-24 border-4 border-background shadow-xl">
+                    <AvatarImage src={profile?.avatar_url || ''} />
+                    <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
+                      {profile?.full_name?.[0]?.toUpperCase() || profile?.email?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <label 
+                    htmlFor="avatar-upload" 
+                    className="absolute bottom-0 right-0 p-1.5 bg-primary text-primary-foreground rounded-full cursor-pointer shadow-lg hover:scale-110 transition-transform"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <input 
+                      id="avatar-upload" 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={handleAvatarUpload}
+                    />
+                  </label>
+                </div>
+                <div className="text-center sm:text-left">
+                  <CardTitle className="text-xl">{profile?.full_name || 'Tanpa Nama'}</CardTitle>
+                  <CardDescription className="mt-1">{profile?.email}</CardDescription>
+                </div>
               </div>
-              <div className="text-center space-y-1">
-                <h3 className="font-bold text-lg truncate w-full">{fullName || 'User'}</h3>
-                <p className="text-xs text-muted-foreground truncate w-full">{profile?.email}</p>
-              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="full_name">Nama Lengkap</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="full_name"
+                      placeholder="Masukkan nama lengkap"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Button type="submit" disabled={updatingProfile || loading} className="w-full sm:w-auto">
+                  {updatingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Simpan Perubahan
+                </Button>
+              </form>
             </CardContent>
           </Card>
 
-          {/* Settings Section */}
-          <div className="md:col-span-2 space-y-8">
-            <Card className="rounded-2xl border shadow-sm overflow-hidden">
-              <CardHeader className="p-6 border-b bg-primary/5">
-                <CardTitle className="text-sm font-bold flex items-center gap-3 uppercase tracking-wider">
-                  <div className="p-2 bg-primary/10 rounded-xl">
-                    <User className="h-4 w-4 text-primary" />
-                  </div>
-                  Informasi Dasar
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                <div className="space-y-2 group">
-                  <Label className="text-[10px] font-bold uppercase tracking-wider pl-1 text-muted-foreground group-focus-within:text-primary">
-                    Nama Lengkap
-                  </Label>
+          {/* Password Section */}
+          <Card className="border-border/40 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Lock className="w-5 h-5 text-primary" />
+                Keamanan Akun
+              </CardTitle>
+              <CardDescription>Perbarui kata sandi Anda secara berkala.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUpdatePassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Kata Sandi Baru</Label>
                   <Input
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="h-12 rounded-xl border bg-muted/30 focus-visible:ring-1 ring-primary/20 font-medium"
-                    placeholder="Masukkan nama lengkap"
+                    id="password"
+                    type="password"
+                    placeholder="Minimal 6 karakter"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
-                <div className="space-y-2 group opacity-70">
-                  <Label className="text-[10px] font-bold uppercase tracking-wider pl-1 text-muted-foreground">
-                    Alamat Email (Tidak dapat diubah)
-                  </Label>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm_password">Konfirmasi Kata Sandi</Label>
                   <Input
-                    value={profile?.email || ''}
-                    disabled
-                    className="h-12 rounded-xl border bg-muted/30 font-medium cursor-not-allowed"
+                    id="confirm_password"
+                    type="password"
+                    placeholder="Ulangi kata sandi baru"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                   />
                 </div>
-                <Button 
-                  onClick={handleUpdateProfile} 
-                  disabled={isUpdatingProfile} 
-                  className="w-full h-12 rounded-xl gap-2 font-bold uppercase text-xs tracking-widest bg-primary text-white shadow-lg shadow-primary/20"
-                >
-                  {isUpdatingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Simpan Perubahan
+                <Button type="submit" variant="secondary" disabled={updatingPassword || !password} className="w-full sm:w-auto">
+                  {updatingPassword ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
+                  Perbarui Kata Sandi
                 </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl border shadow-sm overflow-hidden">
-              <CardHeader className="p-6 border-b bg-destructive/5">
-                <CardTitle className="text-sm font-bold flex items-center gap-3 uppercase tracking-wider text-destructive">
-                  <div className="p-2 bg-destructive/10 rounded-xl">
-                    <Lock className="h-4 w-4" />
-                  </div>
-                  Keamanan
-                </CardTitle>
-                <CardDescription className="text-[10px] pl-11 font-medium">Ubah kata sandi akun Anda</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2 group">
-                    <Label className="text-[10px] font-bold uppercase tracking-wider pl-1 text-muted-foreground group-focus-within:text-primary">
-                      Password Baru
-                    </Label>
-                    <Input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-12 rounded-xl border bg-muted/30 focus-visible:ring-1 ring-primary/20 font-medium"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                  <div className="space-y-2 group">
-                    <Label className="text-[10px] font-bold uppercase tracking-wider pl-1 text-muted-foreground group-focus-within:text-primary">
-                      Konfirmasi Password
-                    </Label>
-                    <Input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="h-12 rounded-xl border bg-muted/30 focus-visible:ring-1 ring-primary/20 font-medium"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                </div>
-                <Button 
-                  onClick={handleUpdatePassword} 
-                  disabled={isUpdatingPassword} 
-                  variant="outline"
-                  className="w-full h-12 rounded-xl gap-2 font-bold uppercase text-xs tracking-widest border-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-all"
-                >
-                  {isUpdatingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                  Update Password
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </Layout>
