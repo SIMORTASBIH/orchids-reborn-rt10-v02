@@ -13,9 +13,10 @@ import Pengurus from "./pages/Pengurus";
 import Payments from "./pages/Payments";
 import Transactions from "./pages/TransactionList";
 import Reports from "./pages/Reports";
-import Ronda from "./pages/Ronda";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
+import Ronda from "./pages/Ronda";
+import RondaDetail from "./pages/RondaDetail";
 import NotFound from "./pages/NotFound";
 import HoverReceiver from "@/visual-edits/VisualEditsMessenger";
 
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/ronda" element={<ProtectedRoute><Ronda /></ProtectedRoute>} />
+            <Route path="/ronda/:id" element={<ProtectedRoute><RondaDetail /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
