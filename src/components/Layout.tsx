@@ -9,8 +9,7 @@ import {
   FileText, 
   Settings,
   User,
-  LogOut,
-  ShieldCheck
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,6 @@ const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/residents', icon: Users, label: 'Warga' },
   { href: '/pengurus', icon: UserCog, label: 'Pengurus' },
-  { href: '/ronda', icon: ShieldCheck, label: 'Jadwal Ronda' },
   { href: '/transactions', icon: ArrowUpDown, label: 'Bayar & Transaksi' },
   { href: '/reports', icon: FileText, label: 'Laporan' },
   { href: '/profile', icon: User, label: 'Profil' },
